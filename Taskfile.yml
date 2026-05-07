@@ -1,0 +1,101 @@
+version: '3'
+
+vars:
+  APP_NAME: rates-service
+  DOCKER_COMPOSE_FILE: env/docker-compose.yaml
+  DOCKER_COMPOSE: docker-compose --project-name {{.APP_NAME}} --file {{.DOCKER_COMPOSE_FILE}}
+  DB_URL: postgres://local_user:local_db@localhost:5432/rates-service?sslmode=disable
+  DB_SOURCE: file://internal/db/migrations
+  VERSION:
+    sh: git describe --tags --first-parent --match "v*" --abbrev=0 2> /dev/null || echo v0.0.0-local-build
+  COMMIT_HASH:
+    sh: git rev-parse --short HEAD 2> /dev/null || echo missing-hash
+  BUILD_DATE:
+    sh: date -u +'%Y-%m-%dT%H:%M:%SZ'
+
+tasks:
+  default:
+    silent: true
+    cmds:
+      - task --list
+
+  build:
+    desc: Build binary
+    cmds:
+      - go build -trimpath -o {{.APP_NAME}} ./cmd/rates-service
+
+  run:
+    desc: Run HTTP server locally
+    cmds:
+      - go run ./cmd/rates-service serve
+
+  fetch:
+    desc: Fetch selected currencies into database
+    cmds:
+      - go run ./cmd/rates-service fetch
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...
+
+  generate:
+    desc: Run code generators against migrated local database
+    cmds:
+      - task: env-infra-up
+      - task: wait-for-db
+      - task: migrate-up
+      - go mod tidy
+      - go generate ./...
+      - go mod tidy
+
+  docker-build:
+    desc: Build Docker image
+    cmds:
+      - docker build --build-arg VERSION={{.VERSION}} --build-arg COMMIT_HASH={{.COMMIT_HASH}} --build-arg BUILD_DATE={{.BUILD_DATE}} -t {{.APP_NAME}}:{{.VERSION}} .
+
+  env-up:
+    desc: Start Docker environment
+    cmds:
+      - VERSION={{.VERSION}} COMMIT_HASH={{.COMMIT_HASH}} BUILD_DATE={{.BUILD_DATE}} {{.DOCKER_COMPOSE}} up -d --build
+
+  env-infra-up:
+    desc: Start only PostgreSQL and Redis
+    cmds:
+      - VERSION={{.VERSION}} {{.DOCKER_COMPOSE}} up -d db redis
+
+  env-down:
+    desc: Stop Docker environment
+    ignore_error: true
+    cmds:
+      - '{{.DOCKER_COMPOSE}} down -v --remove-orphans'
+
+  wait-for-db:
+    desc: Wait for PostgreSQL
+    internal: true
+    cmds:
+      - |
+        for i in $(seq 1 30); do
+          {{.DOCKER_COMPOSE}} exec -T db pg_isready -U local_user -d rates-service && break
+          sleep 1
+        done
+
+  migrate-up:
+    desc: Run migrations up
+    cmds:
+      - migrate -source "{{.DB_SOURCE}}" -database "{{.DB_URL}}" up
+
+  migrate-down:
+    desc: Run migrations down
+    cmds:
+      - migrate -source "{{.DB_SOURCE}}" -database "{{.DB_URL}}" down -all
+
+  env-rebuild:
+    desc: Rebuild full local environment
+    cmds:
+      - task: env-down
+      - task: docker-build
+      - task: env-infra-up
+      - task: wait-for-db
+      - task: migrate-up
+      - task: env-up

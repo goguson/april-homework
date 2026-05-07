@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-latest}
+        COMMIT_HASH: ${COMMIT_HASH:-local}
+        BUILD_DATE: ${BUILD_DATE:-local}
+    image: rates-service:${VERSION:-latest}
+    ports:
+      - "8888:8888"
+    environment:
+      DB_HOST: db
+      REDIS_ADDRESS: redis:6379
+      LOG_LEVEL: debug
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - rates-network
+
+  db:
+    image: postgres:18.1
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: local_user
+      POSTGRES_PASSWORD: local_db
+      POSTGRES_DB: rates-service
+    volumes:
+      - db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U local_user -d rates-service"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rates-network
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - rates-network
+
+volumes:
+  db_data:
+
+networks:
+  rates-network:
+    driver: bridge

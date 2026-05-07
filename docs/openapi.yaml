@@ -1,0 +1,211 @@
+openapi: 3.1.0
+info:
+  title: Currency Rates Service
+  description: Homework service for Bank.lv ECB exchange rates.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8888/api/v1
+paths:
+  /rates:
+    get:
+      summary: Latest exchange rates
+      description: Returns latest stored rates for all currencies.
+      responses:
+        "200":
+          description: Latest exchange rates from database.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatesResponse"
+  /rates/{currency}/history:
+    get:
+      summary: Exchange-rate history for one currency
+      description: Returns stored history for requested currency.
+      parameters:
+        - name: currency
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+            default: GBP
+            example: GBP
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+            default: "2026-01-01"
+            example: "2026-01-01"
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+            default: "2026-05-06"
+            example: "2026-05-06"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 500
+            example: 100
+      responses:
+        "200":
+          description: Currency history from database.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatesResponse"
+        "422":
+          description: Invalid currency or date.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /rates/fetch:
+    post:
+      summary: Fetch current exchange rates
+      description: Runs the same ingestion flow as the `rates-service fetch` command and stores successful currency rates in PostgreSQL for later read endpoints.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FetchRatesRequest"
+            example:
+              currencies:
+                - USD
+                - GBP
+                - JPY
+                - CHF
+                - PLN
+                - SEK
+                - NOK
+                - DKK
+                - CAD
+                - AUD
+      responses:
+        "200":
+          description: Fetch completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FetchRatesResponse"
+        "207":
+          description: Fetch completed with partial failures.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FetchRatesResponse"
+        "500":
+          description: Fetch failed before data could be saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    FetchRatesRequest:
+      type: object
+      properties:
+        currencies:
+          type: array
+          default:
+            - USD
+            - GBP
+            - JPY
+            - CHF
+            - PLN
+            - SEK
+            - NOK
+            - DKK
+            - CAD
+            - AUD
+          items:
+            type: string
+            minLength: 3
+            maxLength: 3
+            default: GBP
+            example: GBP
+    FetchRatesResponse:
+      type: object
+      required:
+        - saved
+        - failed
+      properties:
+        saved:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rate"
+        failed:
+          type: array
+          items:
+            $ref: "#/components/schemas/FetchFailure"
+    FetchFailure:
+      type: object
+      required:
+        - currency
+        - error
+      properties:
+        currency:
+          type: string
+          default: GBP
+          example: GBP
+        error:
+          type: string
+          default: currency GBP not found
+          example: currency GBP not found
+    RatesResponse:
+      type: object
+      required:
+        - base_currency
+        - rates
+      properties:
+        base_currency:
+          type: string
+          default: EUR
+          example: EUR
+        rates:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rate"
+    Rate:
+      type: object
+      required:
+        - currency
+        - rate
+        - effective_date
+        - source
+      properties:
+        id:
+          type: string
+          default: 019bcb7d-f22c-7bcc-9441-fcd1e5c1ec87
+        currency:
+          type: string
+          default: GBP
+          example: GBP
+        rate:
+          type: string
+          default: "0.85670000"
+          example: "0.85670000"
+        effective_date:
+          type: string
+          format: date
+          default: "2026-05-05"
+          example: "2026-05-05"
+        source:
+          type: string
+          default: bank.lv/ecb_rss
+          example: bank.lv/ecb_rss
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          default: validation error

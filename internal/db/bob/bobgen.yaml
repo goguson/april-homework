@@ -1,0 +1,30 @@
+psql:
+  dsn: "postgres://local_user:local_db@localhost:5432/rates-service?sslmode=disable&search_path=rates,public"
+  driver: "github.com/jackc/pgx/v5/stdlib"
+  schemas: rates
+  uuid_pkg: "gofrs"
+  queries:
+  concurrency: 10
+plugins_preset: "all"
+plugins:
+  dbinfo:
+    disabled: false
+    pkgname: "dbinfo"
+    destination: "dbinfo"
+  enums:
+    disabled: false
+    pkgname: "enums"
+    destination: "enums"
+  models:
+    disabled: false
+    pkgname: "bob"
+    destination: "bob"
+  factory:
+    disabled: false
+    pkgname: "factory"
+    destination: "factory"
+  dberrors:
+    disabled: false
+    pkgname: "dberrors"
+    destination: "dberrors"
+
