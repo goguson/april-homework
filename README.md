@@ -2,7 +2,7 @@
 
 Go microservice for Bank.lv ECB exchange rates.
 
-## API
+## API / UI
 
 OpenAPI contract lives in `docs/openapi.yaml` and URL: http://localhost:8888/api/docs/
 
@@ -12,8 +12,8 @@ OpenAPI contract lives in `docs/openapi.yaml` and URL: http://localhost:8888/api
 - As a base I used my service template, so there are kinda not needed things like rate-limiting with state backed in redis (for rate limmiting across multiple isntances) or some health endpoints. 
 
 ### Database
-- even with scale for such usecase psotgres would be just fine. We could make use of partitioning or go all in with plugins like TimescaleDB
-- I used some niche lib called Bob, I find it sometimes usefull ,as it generates orm-like tooling withotu a real cost. It can bu used next to PGX/sqlc jsut fine, does not vendor-lock-in our selfes no matter how much it is used. We can always fall back to just pgx, yet we gain a lot of cool generated funcs/tooling for fast iterations and quick queries on demand, out of generated code.
+- even with scale for such usecase postgres would be just fine. We could make use of partitioning or go all in with plugins like TimescaleDB
+- I used some niche lib called Bob, I find it sometimes usefull, as it generates orm-like tooling without a real cost. It can bu used next to PGX/sqlc just fine, does not vendor-lock-in our selfes no matter how much it is used. We can always fall back to just pgx, yet we gain a lot of cool generated funcs/tooling for fast iterations and quick queries on demand, out of generated code.
   
 ### Tests
 - I would not say there are really meaningful tests, but as it is just a homework I did not invest much time into more proper tests.
