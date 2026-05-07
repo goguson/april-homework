@@ -2,6 +2,26 @@
 
 Go microservice for Bank.lv ECB exchange rates.
 
+## API
+
+OpenAPI contract lives in `docs/openapi.yaml` and URL: http://localhost:8888/api/docs/
+
+## What else could/would be done
+
+- I find it hard to balance between providing good enough solution for such tasks (recruitment homework) and not spending too much time/effort, as each of us focus on different things. I wanted to avoid any unecessary over-engineering like making sure db is as fast as possible, making sure I choose the most suitable DB engine for given write/read patterns and simillar.
+- As a base I used my service template, so there are kinda not needed things like rate-limiting with state backed in redis (for rate limmiting across multiple isntances) or some health endpoints. 
+
+### Database
+- even with scale for such usecase psotgres would be just fine. We could make use of partitioning or go all in with plugins like TimescaleDB
+- I used some niche lib called Bob, I find it sometimes usefull ,as it generates orm-like tooling withotu a real cost. It can bu used next to PGX/sqlc jsut fine, does not vendor-lock-in our selfes no matter how much it is used. We can always fall back to just pgx, yet we gain a lot of cool generated funcs/tooling for fast iterations and quick queries on demand, out of generated code.
+  
+### Tests
+- I would not say there are really meaningful tests, but as it is just a homework I did not invest much time into more proper tests.
+- I guess I would introduce some component/integration tests as well as make use of Testcontainers.
+
+### API
+- it is not the most beautiful implementation code-wise, but it does the job for now. 
+
 ## Tech
 
 - Go 1.26
@@ -78,6 +98,5 @@ go run ./cmd/rates-service fetch
 | `RATE_LIMIT_LIMIT` | `120` |
 | `RATE_LIMIT_WINDOW_SECONDS` | `60` |
 
-## API
 
-OpenAPI contract lives in `docs/openapi.yaml`.
+
